@@ -9,6 +9,9 @@
 ![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_CSS-v4.3-38bdf8?style=flat&logo=tailwindcss)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6?style=flat&logo=typescript)
 ![مجوز](https://img.shields.io/badge/License-MIT-green?style=flat)
+[![مشاهده دمو آنلاین](https://img.shields.io/badge/دموی_زنده-3d--personal--site--five.vercel.app-00df8f?style=flat&logo=vercel&logoColor=white)](https://3d-personal-site-five.vercel.app/)
+
+> 🚀 **مشاهده دموی آنلاین پروژه:** [https://3d-personal-site-five.vercel.app/](https://3d-personal-site-five.vercel.app/)
 
 وب‌سایت تعاملی و مدرن برند شخصی با گرافیک سه‌بعدی پیشرفته و سینمایی، توسعه‌یافته بر پایه **React 19**، **Three.js**، **TanStack Start**، و **Tailwind CSS v4**. این پروژه شامل کوریوگرافی پیوسته دوربین سه‌بعدی با اسکرول، شیدرهای اختصاصی، تعامل با ماوس، و پنل مدیریت امن و مخفی برای درخواست‌های مشاوره است.
 

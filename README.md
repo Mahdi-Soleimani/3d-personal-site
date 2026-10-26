@@ -9,6 +9,9 @@
 ![Tailwind CSS v4](https://img.shields.io/badge/Tailwind_CSS-v4.3-38bdf8?style=flat&logo=tailwindcss)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6?style=flat&logo=typescript)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-3d--personal--site--five.vercel.app-00df8f?style=flat&logo=vercel&logoColor=white)](https://3d-personal-site-five.vercel.app/)
+
+> 🚀 **Live Production Demo:** [https://3d-personal-site-five.vercel.app/](https://3d-personal-site-five.vercel.app/)
 
 An immersive, high-performance personal branding website and interactive 3D showcase built with **React 19**, **Three.js**, **TanStack Start**, and **Tailwind CSS v4**. Featuring continuous camera choreographies tied to scroll narrative, bespoke shaders, mouse-driven parallax, and an unlisted, secure consultation management system.
 
