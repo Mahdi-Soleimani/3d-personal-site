@@ -1,0 +1,310 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Vazirmatn", tahoma, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --color-bg: #0c0b09;
+  --color-surface: #17140f;
+  --color-fg: #f3ecdf;
+  --color-muted: #a89a8c;
+  --color-line: #2c261e;
+  --color-copper: #e09a55;
+
+  --text-display: clamp(2.55rem, 6.4vw, 6.15rem);
+  --text-display--line-height: 1.06;
+  --text-display--font-weight: 800;
+  --text-display--letter-spacing: -0.035em;
+
+  --text-title: clamp(1.75rem, 3.1vw, 2.85rem);
+  --text-title--line-height: 1.18;
+  --text-title--font-weight: 800;
+  --text-title--letter-spacing: -0.03em;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 5.5rem;
+    color-scheme: dark;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    font-size: 1.0625rem;
+    line-height: 1.7;
+    overflow-x: clip;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  ::selection {
+    background: var(--color-copper);
+    color: var(--color-bg);
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-copper);
+    outline-offset: 3px;
+  }
+}
+
+.stage-fallback {
+  background:
+    linear-gradient(to top, var(--color-bg) 0%, transparent 42%),
+    repeating-linear-gradient(90deg,
+      transparent 0 72px,
+      color-mix(in oklab, var(--color-copper) 22%, transparent) 72px 73px),
+    repeating-linear-gradient(0deg,
+      transparent 0 72px,
+      color-mix(in oklab, var(--color-line) 90%, transparent) 72px 73px);
+  mask-image: radial-gradient(120% 80% at 50% 40%, black 30%, transparent 78%);
+}
+
+html.gl-on .stage-fallback {
+  opacity: 0;
+}
+
+.finder {
+  position: relative;
+  border: 1px solid color-mix(in oklab, var(--color-copper) 42%, transparent);
+}
+
+.finder::before,
+.finder::after {
+  content: "";
+  position: absolute;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-color: var(--color-copper);
+  border-style: solid;
+  pointer-events: none;
+}
+
+.finder::before {
+  top: -1px;
+  right: -1px;
+  border-width: 2px 2px 0 0;
+}
+
+.finder::after {
+  bottom: -1px;
+  left: -1px;
+  border-width: 0 0 2px 2px;
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+}
+
+.reveal.in {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 520ms cubic-bezier(0.2, 0, 0, 1),
+    transform 520ms cubic-bezier(0.2, 0, 0, 1);
+}
+
+.scroll-cue {
+  transform-origin: top center;
+  animation: cue 1.6s ease-in-out infinite;
+}
+
+.dash-flow {
+  stroke-dasharray: 8 10;
+  animation: dash 14s linear infinite;
+}
+
+.orbit-spin {
+  animation: orbit 18s linear infinite;
+}
+
+.portrait-mask {
+  clip-path: inset(0 0 100% 0);
+}
+
+.portrait-mask.in {
+  animation: unmask 900ms cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+.work-row::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: radial-gradient(440px circle at var(--mx, 80%) var(--my, 50%),
+      color-mix(in oklab, var(--color-copper) 18%, transparent),
+      transparent 46%);
+  transition: opacity 200ms ease;
+}
+
+.work-row:hover::before,
+.work-row:focus-within::before {
+  opacity: 1;
+}
+
+@keyframes cue {
+
+  0%,
+  100% {
+    transform: scaleY(0.35);
+    opacity: 0.4;
+  }
+
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes dash {
+  to {
+    stroke-dashoffset: -280;
+  }
+}
+
+@keyframes orbit {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@keyframes counter-orbit {
+  to {
+    transform: rotate(-1turn);
+  }
+}
+
+@keyframes unmask {
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+/* 21st.dev & MotionSites Style: Spotlight Cards */
+.spotlight-card {
+  position: relative;
+  background: color-mix(in oklab, var(--color-surface) 80%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-line) 90%, transparent);
+  overflow: hidden;
+  transition: border-color 300ms ease, box-shadow 300ms ease;
+}
+
+.spotlight-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(
+    380px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+    color-mix(in oklab, var(--color-copper) 22%, transparent),
+    transparent 42%
+  );
+  opacity: 0;
+  transition: opacity 300ms ease;
+  z-index: 1;
+}
+
+.spotlight-card:hover::before,
+.spotlight-card:focus-within::before {
+  opacity: 1;
+}
+
+.spotlight-card:hover {
+  border-color: color-mix(in oklab, var(--color-copper) 50%, transparent);
+  box-shadow: 0 10px 30px -10px color-mix(in oklab, var(--color-copper) 12%, transparent);
+}
+
+/* 21st.dev Style Border Beam Highlight */
+.border-beam-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.border-beam-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(
+    from 180deg at 50% 50%,
+    transparent 0deg,
+    transparent 260deg,
+    color-mix(in oklab, var(--color-copper) 40%, transparent) 310deg,
+    var(--color-copper) 345deg,
+    #ffffff 360deg
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: beam-spin 7s linear infinite;
+  opacity: 0.85;
+}
+
+@keyframes beam-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Precision Telemetry HUD Badge */
+.telemetry-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.05em;
+  padding: 0.2rem 0.6rem;
+  border-radius: 9999px;
+  background: color-mix(in oklab, var(--color-surface) 90%, transparent);
+  border: 1px solid color-mix(in oklab, var(--color-copper) 30%, transparent);
+  color: var(--color-copper);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .reveal,
+  .portrait-mask {
+    opacity: 1;
+    transform: none;
+    clip-path: none;
+    animation: none;
+  }
+
+  .scroll-cue,
+  .dash-flow,
+  .orbit-spin,
+  .border-beam-card::after {
+    animation: none;
+  }
+}

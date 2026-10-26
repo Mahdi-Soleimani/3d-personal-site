@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+.node_modules.lock
+.pnp
+.pnp.js
+
+# Build outputs & Nitro / Vercel
+.output/
+.vercel/
+.nitro/
+dist/
+build/
+.tanstack/
+.vite/
+
+# Grok sandbox internal state & scratch
+.grok/
+scratch/
+artifacts/
+attachments/
+/screenshots/
+*.local
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
