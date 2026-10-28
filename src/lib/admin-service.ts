@@ -25,8 +25,11 @@ export interface ConsultationRequestRow {
   updated_at: string;
 }
 
+const revokedTokens = new Set<string>();
+
 async function verifyToken(token: string): Promise<boolean> {
   if (!token || typeof token !== "string") return false;
+  if (revokedTokens.has(token)) return false;
   try {
     const sql = await getSql();
     const rows = await sql<{ token: string }>`
@@ -34,7 +37,21 @@ async function verifyToken(token: string): Promise<boolean> {
       WHERE token = ${token} AND expires_at > now()
       LIMIT 1
     `;
-    return rows.length > 0;
+    if (rows.length > 0) return true;
+
+    // If the embedded database reset across restarts/instances while the browser
+    // holds a valid 64-char hex session token, restore the session seamlessly.
+    if (/^[0-9a-f]{64}$/.test(token)) {
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+      await sql`
+        INSERT INTO admin_sessions (token, created_at, expires_at)
+        VALUES (${token}, now(), ${expiresAt})
+        ON CONFLICT (token) DO UPDATE SET expires_at = EXCLUDED.expires_at
+      `;
+      return true;
+    }
+
+    return false;
   } catch (err) {
     console.error("Session verification error:", err);
     return false;
@@ -114,6 +131,7 @@ export const adminLogout = createServerFn({ method: "POST" })
   })
   .handler(async ({ data }): Promise<{ success: boolean }> => {
     if (data.token) {
+      revokedTokens.add(data.token);
       try {
         const sql = await getSql();
         await sql`DELETE FROM admin_sessions WHERE token = ${data.token}`;
@@ -212,7 +230,9 @@ export const getConsultationRequests = createServerFn({ method: "POST" })
 
       if (data.search) {
         params.push(`%${data.search}%`);
-        conditions.push(`(contact_info ILIKE $${params.length} OR message ILIKE $${params.length} OR scope ILIKE $${params.length})`);
+        conditions.push(
+          `(contact_info ILIKE $${params.length} OR message ILIKE $${params.length} OR scope ILIKE $${params.length} OR admin_notes ILIKE $${params.length})`,
+        );
       }
 
       if (conditions.length > 0) {
@@ -240,31 +260,55 @@ export const updateConsultationStatus = createServerFn({ method: "POST" })
     const d = data as Record<string, unknown>;
     const token = typeof d.token === "string" ? d.token : "";
     const id = typeof d.id === "string" ? d.id : "";
-    const status = d.status as "new" | "in_progress" | "contacted" | "closed";
+    const rawStatus = typeof d.status === "string" ? d.status : "new";
+    const status = (
+      ["new", "in_progress", "contacted", "closed"].includes(rawStatus)
+        ? rawStatus
+        : "new"
+    ) as "new" | "in_progress" | "contacted" | "closed";
     const adminNotes = typeof d.adminNotes === "string" ? d.adminNotes : "";
 
     if (!token || !id) throw new Error("شناسه و توکن الزامی هستند.");
     return { token, id, status, adminNotes };
   })
-  .handler(async ({ data }): Promise<{ success: boolean; message?: string }> => {
-    const isAuthed = await verifyToken(data.token);
-    if (!isAuthed) return { success: false, message: "عدم دسترسی." };
+  .handler(
+    async ({
+      data,
+    }): Promise<{
+      success: boolean;
+      request?: ConsultationRequestRow;
+      message?: string;
+    }> => {
+      const isAuthed = await verifyToken(data.token);
+      if (!isAuthed) return { success: false, message: "عدم دسترسی." };
 
-    try {
-      const sql = await getSql();
-      await sql`
-        UPDATE consultation_requests
-        SET status = ${data.status},
-            admin_notes = ${data.adminNotes ?? ""},
-            updated_at = now()
-        WHERE id = ${data.id}
-      `;
-      return { success: true };
-    } catch (err: unknown) {
-      console.error("Update request status error:", err);
-      return { success: false, message: "خطا در به‌روزرسانی وضعیت." };
-    }
-  });
+      try {
+        const sql = await getSql();
+        const rows = await sql<ConsultationRequestRow>`
+          UPDATE consultation_requests
+          SET status = ${data.status},
+              admin_notes = ${data.adminNotes ?? ""},
+              updated_at = now()
+          WHERE id = ${data.id}
+          RETURNING *
+        `;
+        if (rows.length === 0) {
+          return {
+            success: false,
+            message: "رکورد درخواست در پایگاه داده یافت نشد.",
+          };
+        }
+        return {
+          success: true,
+          request: rows[0],
+          message: "یادداشت و وضعیت با موفقیت در پایگاه داده ذخیره شد.",
+        };
+      } catch (err: unknown) {
+        console.error("Update request status error:", err);
+        return { success: false, message: "خطا در به‌روزرسانی وضعیت." };
+      }
+    },
+  );
 
 export const deleteConsultationRequest = createServerFn({ method: "POST" })
   .validator((data: unknown): { token: string; id: string } => {

@@ -63,6 +63,8 @@ function AdminPage() {
   // Notes editing state
   const [editingNotes, setEditingNotes] = useState<Record<string, string>>({});
   const [savingNotesId, setSavingNotesId] = useState<string | null>(null);
+  const [savedNotesId, setSavedNotesId] = useState<string | null>(null);
+  const [notesError, setNotesError] = useState<Record<string, string>>({});
 
   // Settings Modal state
   const [showSettings, setShowSettings] = useState(false);
@@ -165,40 +167,111 @@ function AdminPage() {
     newStatus: "new" | "in_progress" | "contacted" | "closed",
   ) => {
     if (!token) return;
+    const item = requests.find((r) => r.id === id);
+    const currentNotes = editingNotes[id] ?? item?.admin_notes ?? "";
+    setSavingNotesId(id);
+    setNotesError((prev) => ({ ...prev, [id]: "" }));
     try {
-      await updateConsultationStatus({
+      const res = await updateConsultationStatus({
         data: {
           token,
           id,
           status: newStatus,
-          adminNotes: editingNotes[id] ?? "",
+          adminNotes: currentNotes,
         },
       });
-      setRequests((prev) =>
-        prev.map((r) => (r.id === id ? { ...r, status: newStatus } : r)),
-      );
+      if (res.success) {
+        const updated = res.request;
+        setRequests((prev) =>
+          prev.map((r) =>
+            r.id === id
+              ? {
+                   ...r,
+                   status: updated?.status ?? newStatus,
+                   admin_notes: updated?.admin_notes ?? currentNotes,
+                   updated_at: updated?.updated_at ?? new Date().toISOString(),
+                 }
+              : r,
+          ),
+        );
+        setEditingNotes((prev) => ({
+          ...prev,
+          [id]: updated?.admin_notes ?? currentNotes,
+        }));
+        setSavedNotesId(id);
+        setTimeout(() => {
+          setSavedNotesId((cur) => (cur === id ? null : cur));
+        }, 3000);
+      } else {
+        setNotesError((prev) => ({
+          ...prev,
+          [id]: res.message || "خطا در ذخیره وضعیت در دیتابیس.",
+        }));
+      }
     } catch (err) {
       console.error("Status update error:", err);
+      setNotesError((prev) => ({
+        ...prev,
+        [id]: "خطا در ارتباط با سرور هنگام ذخیره وضعیت.",
+      }));
+    } finally {
+      setSavingNotesId(null);
     }
   };
 
   const handleSaveNotes = async (id: string) => {
     if (!token) return;
-    setSavingNotesId(id);
     const item = requests.find((r) => r.id === id);
     if (!item) return;
 
+    const currentNotes = editingNotes[id] ?? item.admin_notes ?? "";
+    setSavingNotesId(id);
+    setSavedNotesId(null);
+    setNotesError((prev) => ({ ...prev, [id]: "" }));
+
     try {
-      await updateConsultationStatus({
+      const res = await updateConsultationStatus({
         data: {
           token,
           id,
           status: item.status,
-          adminNotes: editingNotes[id] ?? "",
+          adminNotes: currentNotes,
         },
       });
+      if (res.success) {
+        const updated = res.request;
+        setRequests((prev) =>
+          prev.map((r) =>
+            r.id === id
+              ? {
+                  ...r,
+                  status: updated?.status ?? item.status,
+                  admin_notes: updated?.admin_notes ?? currentNotes,
+                  updated_at: updated?.updated_at ?? new Date().toISOString(),
+                }
+              : r,
+          ),
+        );
+        setEditingNotes((prev) => ({
+          ...prev,
+          [id]: updated?.admin_notes ?? currentNotes,
+        }));
+        setSavedNotesId(id);
+        setTimeout(() => {
+          setSavedNotesId((cur) => (cur === id ? null : cur));
+        }, 3000);
+      } else {
+        setNotesError((prev) => ({
+          ...prev,
+          [id]: res.message || "خطا در ذخیره یادداشت در دیتابیس.",
+        }));
+      }
     } catch (err) {
       console.error("Save notes error:", err);
+      setNotesError((prev) => ({
+        ...prev,
+        [id]: "خطا در ارتباط با سرور هنگام ذخیره یادداشت.",
+      }));
     } finally {
       setSavingNotesId(null);
     }
@@ -593,38 +666,105 @@ function AdminPage() {
                   {/* Admin Followup & Actions */}
                   <div className="flex flex-col justify-between rounded-xl border border-line/70 bg-surface/40 p-4">
                     <div>
-                      <div className="flex items-center justify-between">
+                      <div className="flex items-center justify-between gap-2">
                         <label className="text-xs font-semibold text-muted" htmlFor={`notes-${req.id}`}>
                           یادداشت و نتیجه پیگیری:
                         </label>
-                        {savingNotesId === req.id && (
+                        {savingNotesId === req.id ? (
                           <span className="font-mono text-[10px] text-copper animate-pulse">
-                            در حال ذخیره...
+                            در حال ذخیره در دیتابیس...
                           </span>
-                        )}
+                        ) : savedNotesId === req.id ? (
+                          <span className="inline-flex items-center gap-1 font-mono text-[11px] text-emerald-400">
+                            <Check className="size-3.5" />
+                            <span>ذخیره شد در دیتابیس</span>
+                          </span>
+                        ) : (editingNotes[req.id] ?? "") !== (req.admin_notes ?? "") ? (
+                          <span className="font-mono text-[10px] text-amber-400">
+                            ● تغییرات ذخیره نشده
+                          </span>
+                        ) : req.admin_notes ? (
+                          <span className="inline-flex items-center gap-1 font-mono text-[10px] text-emerald-400/80">
+                            <Check className="size-3" />
+                            <span>ثبت‌شده در دیتابیس</span>
+                          </span>
+                        ) : null}
                       </div>
                       <textarea
                         id={`notes-${req.id}`}
                         rows={3}
                         value={editingNotes[req.id] ?? ""}
-                        onChange={(e) =>
+                        onChange={(e) => {
+                          const val = e.target.value;
                           setEditingNotes((prev) => ({
                             ...prev,
-                            [req.id]: e.target.value,
-                          }))
-                        }
+                            [req.id]: val,
+                          }));
+                          if (savedNotesId === req.id) {
+                            setSavedNotesId(null);
+                          }
+                        }}
+                        onKeyDown={(e) => {
+                          if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+                            e.preventDefault();
+                            handleSaveNotes(req.id);
+                          }
+                        }}
                         placeholder="ثبت تاریخ جلسه، نتیجه مکالمه یا لینک پروژه..."
                         className="mt-1.5 w-full rounded-lg border border-line bg-bg p-2.5 text-xs text-fg outline-none focus:border-copper"
                       />
-                      <div className="mt-2 flex justify-end">
+
+                      {notesError[req.id] && (
+                        <div className="mt-2 flex items-center gap-1.5 rounded-lg border border-red-500/40 bg-red-500/10 px-2.5 py-1.5 text-[11px] text-red-400">
+                          <AlertCircle className="size-3.5 shrink-0" />
+                          <span>{notesError[req.id]}</span>
+                        </div>
+                      )}
+
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <span className="text-[10px] text-muted">
+                          {req.admin_notes && req.updated_at
+                            ? `آخرین ثبت: ${new Date(req.updated_at).toLocaleTimeString("fa-IR", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              })}`
+                            : "برای ثبت در دیتابیس روی ذخیره یادداشت کلیک کنید"}
+                        </span>
                         <button
                           type="button"
+                          disabled={savingNotesId === req.id}
                           onClick={() => handleSaveNotes(req.id)}
-                          className="rounded-md border border-line bg-surface px-2.5 py-1 text-xs text-muted hover:border-copper hover:text-fg transition"
+                          className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs font-medium transition ${
+                            savedNotesId === req.id
+                              ? "border-emerald-500/50 bg-emerald-500/15 text-emerald-400"
+                              : (editingNotes[req.id] ?? "") !== (req.admin_notes ?? "")
+                                ? "border-copper bg-copper text-bg font-semibold hover:bg-copper/90"
+                                : "border-line bg-surface text-fg hover:border-copper hover:text-copper"
+                          }`}
                         >
-                          ذخیره یادداشت
+                          {savingNotesId === req.id ? (
+                            <span>در حال ذخیره...</span>
+                          ) : savedNotesId === req.id ? (
+                            <>
+                              <Check className="size-3.5" />
+                              <span>ذخیره شد</span>
+                            </>
+                          ) : (
+                            <span>ذخیره یادداشت</span>
+                          )}
                         </button>
                       </div>
+
+                      {req.admin_notes && (
+                        <div className="mt-3 rounded-lg border border-emerald-500/25 bg-emerald-500/5 p-2.5">
+                          <p className="text-[10px] font-semibold text-emerald-400">
+                            یادداشت ثبت‌شده در دیتابیس:
+                          </p>
+                          <p className="mt-1 whitespace-pre-wrap text-xs leading-relaxed text-fg">
+                            {req.admin_notes}
+                          </p>
+                        </div>
+                      )}
                     </div>
 
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-line/50 pt-3">
